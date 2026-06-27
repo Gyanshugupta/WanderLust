@@ -45,7 +45,7 @@ body{
     background-color: #ebebeb;
 }
 /* cards */
-.card{
+.listing-card{
     border: none !important;
     margin: 2rem;
 }

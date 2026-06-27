@@ -7,7 +7,9 @@ const methodOverride = require("method-override");
 const ejsMate = require("ejs-mate");
 const wrapAsync = require("./utils/wrapAsync");
 const ExpressError = require("./utils/ExpressError");
-const listingSchema = require('./schema');
+const listingSchema = require("./schema");
+const Review = require("./models/review");
+const { reviewSchema } = require("./schema");
 
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
@@ -16,15 +18,24 @@ app.use(methodOverride("_method"));
 app.engine("ejs", ejsMate);
 app.use(express.static(path.join(__dirname, "/public")));
 
-const validateListing = (req,res,next) => {
-  let {error} = listingSchema.validate(req.body);
-    if(error){
-      let errMsg = error.details.map((el) => el.message).join(",");
-      throw new ExpressError(400,errMsg);
-    }else{
-      next();
-    }
-}
+const validateListing = (req, res, next) => {
+  let { error } = listingSchema.validate(req.body);
+  if (error) {
+    let errMsg = error.details.map((el) => el.message).join(",");
+    throw new ExpressError(400, errMsg);
+  } else {
+    next();
+  }
+};
+const validateReview = (req, res, next) => {
+  let { error } = reviewSchema.validate(req.body);
+  if (error) {
+    let errMsg = error.details.map((el) => el.message).join(",");
+    throw new ExpressError(400, errMsg);
+  } else {
+    next();
+  }
+};
 
 main()
   .then(() => {
@@ -42,7 +53,7 @@ app.get(
   "/",
   wrapAsync(async (req, res) => {
     const allListings = await Listing.find({});
-    res.render("listings/index.ejs", { allListings }); 
+    res.render("listings/index.ejs", { allListings });
     // res.send("Hi, I am root");
   }),
 );
@@ -67,7 +78,7 @@ app.get(
   "/listings/:id",
   wrapAsync(async (req, res) => {
     let { id } = req.params;
-    const listing = await Listing.findById(id);
+    const listing = await Listing.findById(id).populate("reviews");
     res.render("listings/show.ejs", { listing });
   }),
 );
@@ -75,8 +86,9 @@ app.get(
 //Create route
 
 app.post(
-  "/listings",validateListing,
-  wrapAsync(async (req, res,next) => {
+  "/listings",
+  validateListing,
+  wrapAsync(async (req, res, next) => {
     const newListing = new Listing(req.body.listing);
     await newListing.save();
     res.redirect("/listings");
@@ -86,7 +98,8 @@ app.post(
 // edit route
 
 app.get(
-  "/listings/:id/edit",validateListing,
+  "/listings/:id/edit",
+  validateListing,
   wrapAsync(async (req, res) => {
     let { id } = req.params;
     const listing = await Listing.findById(id);
@@ -96,7 +109,8 @@ app.get(
 
 //Update route
 app.put(
-  "/listings/:id",validateListing,
+  "/listings/:id",
+  validateListing,
   wrapAsync(async (req, res) => {
     let { id } = req.params;
     await Listing.findByIdAndUpdate(id, { ...req.body.listing });
@@ -114,14 +128,44 @@ app.post(
   }),
 );
 
-app.all(/(.*)/,(req,res,next) => {
-    next(new ExpressError(404,"Page Not Found!!"));
+// review post
+app.post(
+  "/listings/:id/reviews",
+  validateReview,
+  wrapAsync(async (req, res) => {
+    let { id } = req.params;
+    let listing = await Listing.findById(req.params.id);
+    let newReview = new Review(req.body.review);
+
+    listing.reviews.push(newReview);
+
+    await newReview.save();
+    await listing.save();
+    console.log("New Review Saved!!");
+    res.redirect(`/listings/${id}`);
+  }),
+);
+
+//review Delete
+app.delete(
+  "/listings/:id/reviews/:reviewId",
+  wrapAsync(async (req, res) => {
+    let { id, reviewId } = req.params;
+    await Listing.findByIdAndUpdate(id, { $pull: { reviews: reviewId } });
+    let result = await Review.findByIdAndDelete(reviewId);
+    console.log(result);
+    res.redirect(`/listings/${id}`);
+  }),
+);
+
+app.all(/(.*)/, (req, res, next) => {
+  next(new ExpressError(404, "Page Not Found!!"));
 });
 
 app.use((err, req, res, next) => {
-    let {statusCode = 500,message = "Something Went wrong!"} = err;
-    res.status(statusCode).render("error.ejs",{message});
-//   res.status(statusCode).send(message);
+  let { statusCode = 500, message = "Something Went wrong!" } = err;
+  res.status(statusCode).render("error.ejs", { message });
+  //   res.status(statusCode).send(message);
 });
 
 app.listen(3000, () => {
