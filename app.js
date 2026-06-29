@@ -40,7 +40,7 @@ app.get(
 );
 
 app.use("/listings",listings);
-app.use("/reviews",reviews);
+app.use("/listings/:id/reviews",reviews);
 
 
 app.all(/(.*)/, (req, res, next) => {
