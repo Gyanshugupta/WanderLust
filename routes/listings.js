@@ -30,7 +30,7 @@ router.get("/new", isLoggedIn, newRoute);
 router
   .route("/:id")
   .get(wrapAsync(showRoute))
-  .put(isLoggedIn, isOwner, validateListing, wrapAsync(updateRoute))
+  .put(isLoggedIn, isOwner, validateListing,upload.single("listing[image]"), wrapAsync(updateRoute))
   .post(isLoggedIn, isOwner, wrapAsync(deleteRoute));
 
 // edit route
