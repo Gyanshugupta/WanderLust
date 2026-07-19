@@ -1,6 +1,13 @@
+const path = require("path");
+
+if (process.env.NODE_ENV !== "production") {
+    // This creates a flawless absolute path directly to your root .env file
+    require('dotenv').config({ path: path.join(__dirname, "../.env") });
+}
 const mongoose = require("mongoose");
 const initData = require("./data.js");
 const Listing = require("../models/listing.js");
+const dbURL = process.env.ATLASDB_URL;
 
 main()
   .then(() => {
@@ -11,7 +18,7 @@ main()
   });
 
 async function main() {
-  await mongoose.connect("mongodb://127.0.0.1:27017/wanderlust");
+  await mongoose.connect(dbURL);
 }
 const initDB = async () => {
   await Listing.deleteMany({});
