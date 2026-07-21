@@ -89,12 +89,13 @@ async function main() {
   await mongoose.connect(dbURL);
 }
 
-// app.get(
-//   "/",
-//   wrapAsync(async (req, res) => {
-//     res.send("Hi, I am root");
-//   }),
-// );
+app.get(
+  "/",
+  wrapAsync(async (req, res) => {
+    const allListings = await Listing.find({});
+  res.render("listings/index.ejs", { allListings });
+  }),
+);
 
 app.use("/listings", listingsRouter);
 app.use("/listings/:id/reviews", reviewsRouter);
